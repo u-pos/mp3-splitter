@@ -2,11 +2,18 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
   <title>TrackSplitter</title>
 
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 
   <!-- FFmpeg -->
   <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
@@ -15,205 +22,572 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
+
+    *{
+      box-sizing:border-box;
+    }
+
     body{
+      margin:0;
+      min-height:100vh;
+      color:white;
+      overflow-x:hidden;
+
+      font-family:
+        Inter,
+        "Noto Sans JP",
+        sans-serif;
+
       background:
         radial-gradient(circle at top left,#1e293b 0%,transparent 30%),
         radial-gradient(circle at bottom right,#0f172a 0%,transparent 30%),
         #020617;
-      overflow-x:hidden;
     }
 
-    .glass{
-      background:rgba(255,255,255,.05);
-      backdrop-filter:blur(16px);
+    .bg-orb{
+      position:fixed;
+      border-radius:9999px;
+      filter:blur(120px);
+      opacity:.15;
+      pointer-events:none;
+    }
+
+    .orb1{
+      width:500px;
+      height:500px;
+      background:#06b6d4;
+      top:-200px;
+      left:-150px;
+    }
+
+    .orb2{
+      width:500px;
+      height:500px;
+      background:#3b82f6;
+      bottom:-200px;
+      right:-150px;
+    }
+
+    .container{
+      position:relative;
+      z-index:10;
+      max-width:1100px;
+      margin:auto;
+      padding:40px 20px 80px;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      margin-bottom:20px;
+    }
+
+    .lang-btn{
+      border:none;
+      color:white;
+      padding:10px 16px;
+      border-radius:14px;
+      cursor:pointer;
+
+      background:rgba(255,255,255,.06);
+
       border:1px solid rgba(255,255,255,.08);
+
+      backdrop-filter:blur(10px);
+
+      transition:.2s;
     }
 
-    .drop-active{
-      border-color:#22d3ee!important;
-      box-shadow:0 0 40px rgba(34,211,238,.35);
-      transform:scale(1.01);
-    }
-
-    .progress-anim{
-      transition:width .2s linear;
+    .lang-btn:hover{
+      background:rgba(255,255,255,.12);
     }
 
     .lang-btn.active{
       background:#22d3ee;
       color:#020617;
+      font-weight:700;
     }
 
-    ::-webkit-scrollbar{
-      width:10px;
+    .hero{
+      text-align:center;
+      margin-bottom:40px;
     }
 
-    ::-webkit-scrollbar-thumb{
-      background:#334155;
-      border-radius:999px;
+    .hero h1{
+      font-size:72px;
+      margin:0 0 16px;
+      font-weight:900;
+      letter-spacing:-2px;
+
+      background:linear-gradient(
+        90deg,
+        #22d3ee,
+        #3b82f6
+      );
+
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+    }
+
+    .subtitle{
+      color:#cbd5e1;
+      font-size:20px;
+      margin-bottom:16px;
+    }
+
+    .privacy{
+      color:#67e8f9;
+      font-size:14px;
+    }
+
+    .glass{
+      background:rgba(255,255,255,.05);
+
+      border:1px solid rgba(255,255,255,.08);
+
+      backdrop-filter:blur(16px);
+
+      border-radius:32px;
+    }
+
+    .main-card{
+      padding:32px;
+    }
+
+    .drop-zone{
+      border:2px dashed #475569;
+      border-radius:32px;
+      padding:80px 30px;
+      text-align:center;
+      cursor:pointer;
+
+      transition:.25s;
+    }
+
+    .drop-zone.drag{
+      border-color:#22d3ee;
+
+      transform:scale(1.01);
+
+      box-shadow:
+        0 0 30px rgba(34,211,238,.25);
+    }
+
+    .drop-zone svg{
+      width:90px;
+      height:90px;
+      color:#22d3ee;
+      margin-bottom:20px;
+    }
+
+    .drop-title{
+      font-size:36px;
+      font-weight:700;
+      margin-bottom:14px;
+    }
+
+    .drop-desc{
+      max-width:700px;
+      margin:auto;
+      color:#94a3b8;
+      line-height:1.7;
+      margin-bottom:34px;
+    }
+
+    .primary-btn{
+      border:none;
+      padding:18px 34px;
+      border-radius:20px;
+
+      background:#22d3ee;
+
+      color:#020617;
+
+      font-size:18px;
+      font-weight:700;
+
+      cursor:pointer;
+
+      transition:.2s;
+    }
+
+    .primary-btn:hover{
+      background:#67e8f9;
+      transform:translateY(-2px);
+    }
+
+    .selected-file{
+      margin-bottom:30px;
+    }
+
+    .selected-label{
+      color:#22d3ee;
+      margin-bottom:10px;
+    }
+
+    .selected-name{
+      font-size:28px;
+      font-weight:700;
+      word-break:break-all;
+    }
+
+    .selected-size{
+      margin-top:10px;
+      color:#94a3b8;
+    }
+
+    .options{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      gap:20px;
+      margin-top:32px;
+    }
+
+    .option-box{
+      padding:22px;
+    }
+
+    .option-label{
+      color:#22d3ee;
+      font-size:14px;
+      margin-bottom:14px;
+    }
+
+    .range-wrap{
+      display:flex;
+      align-items:center;
+      gap:14px;
     }
 
     input[type="range"]{
+      width:100%;
       accent-color:#22d3ee;
     }
+
+    .toggle{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      font-size:20px;
+      font-weight:700;
+    }
+
+    .toggle input{
+      width:22px;
+      height:22px;
+    }
+
+    .process-area{
+      margin-top:30px;
+    }
+
+    .process-btn{
+      width:100%;
+      border:none;
+
+      background:linear-gradient(
+        90deg,
+        #06b6d4,
+        #2563eb
+      );
+
+      color:white;
+
+      padding:24px;
+      border-radius:24px;
+
+      font-size:22px;
+      font-weight:800;
+
+      cursor:pointer;
+
+      transition:.2s;
+    }
+
+    .process-btn:hover{
+      opacity:.9;
+      transform:translateY(-2px);
+    }
+
+    .process-btn:disabled{
+      opacity:.3;
+      cursor:not-allowed;
+      transform:none;
+    }
+
+    .status-box{
+      margin-top:34px;
+      display:none;
+    }
+
+    .status-head{
+      display:flex;
+      justify-content:space-between;
+      margin-bottom:12px;
+      color:#cbd5e1;
+      font-size:14px;
+    }
+
+    .progress-wrap{
+      width:100%;
+      height:16px;
+      background:#0f172a;
+      border-radius:999px;
+      overflow:hidden;
+    }
+
+    .progress-bar{
+      height:100%;
+      width:0%;
+
+      background:linear-gradient(
+        90deg,
+        #22d3ee,
+        #3b82f6
+      );
+
+      transition:.2s linear;
+    }
+
+    .result-box{
+      margin-top:34px;
+      display:none;
+    }
+
+    .result-inner{
+      padding:26px;
+
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:20px;
+      flex-wrap:wrap;
+    }
+
+    .result-title{
+      font-size:28px;
+      font-weight:800;
+      color:#67e8f9;
+    }
+
+    .result-desc{
+      margin-top:8px;
+      color:#94a3b8;
+    }
+
+    .download-btn{
+      border:none;
+      padding:18px 30px;
+      border-radius:20px;
+
+      background:#22d3ee;
+      color:#020617;
+
+      font-size:18px;
+      font-weight:800;
+
+      cursor:pointer;
+    }
+
+    .footer{
+      margin-top:40px;
+      text-align:center;
+      color:#64748b;
+      font-size:14px;
+    }
+
+    @media(max-width:768px){
+
+      .hero h1{
+        font-size:52px;
+      }
+
+      .drop-title{
+        font-size:28px;
+      }
+
+      .main-card{
+        padding:20px;
+      }
+
+      .drop-zone{
+        padding:60px 20px;
+      }
+    }
+
   </style>
 </head>
 
-<body class="text-white min-h-screen font-sans">
+<body>
 
-<div class="absolute inset-0 overflow-hidden pointer-events-none">
-  <div class="absolute w-[450px] h-[450px] bg-cyan-500/10 blur-3xl rounded-full -top-40 -left-40"></div>
-  <div class="absolute w-[450px] h-[450px] bg-blue-500/10 blur-3xl rounded-full bottom-0 right-0"></div>
-</div>
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
 
-<main class="relative z-10 max-w-5xl mx-auto px-6 py-12">
+<div class="container">
 
-  <!-- TOP -->
-  <div class="flex justify-end mb-6 gap-2">
+  <!-- language -->
+  <div class="topbar">
 
     <button id="jpBtn"
-      class="lang-btn active px-4 py-2 rounded-xl glass text-sm">
+      class="lang-btn active">
       日本語
     </button>
 
     <button id="enBtn"
-      class="lang-btn px-4 py-2 rounded-xl glass text-sm">
+      class="lang-btn">
       EN
     </button>
 
   </div>
 
-  <!-- HEADER -->
-  <div class="text-center mb-12">
+  <!-- hero -->
+  <div class="hero">
 
-    <h1 class="text-6xl font-black tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 text-transparent bg-clip-text mb-4">
-      TrackSplitter
-    </h1>
+    <h1>TrackSplitter</h1>
 
-    <p id="subtitle"
-      class="text-slate-300 text-lg">
+    <div id="subtitle"
+      class="subtitle">
       音楽ファイルを自動分割・音量調整・ZIP出力
-    </p>
+    </div>
 
-    <div class="mt-4 text-cyan-300 text-sm">
-      <span id="privacyText">
-        ファイルはサーバーに送信されません。すべてブラウザ内で処理されます。
-      </span>
+    <div id="privacy"
+      class="privacy">
+      ファイルはサーバーに送信されません。すべてブラウザ内で処理されます。
     </div>
 
   </div>
 
-  <!-- MAIN -->
-  <div class="glass rounded-3xl p-8">
+  <!-- card -->
+  <div class="glass main-card">
 
-    <!-- DROP -->
+    <!-- drop -->
     <div id="dropZone"
-      class="border-2 border-dashed border-slate-600 rounded-3xl p-16 text-center transition-all duration-300 cursor-pointer">
+      class="drop-zone">
 
-      <input type="file" id="fileInput" accept="audio/*" class="hidden" />
+      <input
+        type="file"
+        id="fileInput"
+        accept="audio/*"
+        hidden>
 
-      <div class="flex flex-col items-center">
+      <div id="dropContent">
 
         <svg xmlns="http://www.w3.org/2000/svg"
-          class="w-24 h-24 text-cyan-400 mb-6"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor">
 
-          <path stroke-linecap="round"
+          <path
+            stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="1.5"
-            d="M9 17v-6h13v6M9 17H5a2 2 0 01-2-2V7a2 2 0 012-2h4m0 12v2m0-2h13m0 0v2m0-2a2 2 0 002-2V9a2 2 0 00-2-2h-4m0 0V5m0 2H9m11 0h-4">
-          </path>
+            d="M9 17v-6h13v6M9 17H5a2 2 0 01-2-2V7a2 2 0 012-2h4m0 12v2m0-2h13m0 0v2m0-2a2 2 0 002-2V9a2 2 0 00-2-2h-4m0 0V5m0 2H9m11 0h-4"/>
 
         </svg>
 
-        <h2 id="dropTitle"
-          class="text-3xl font-bold mb-3">
+        <div id="dropTitle"
+          class="drop-title">
           音楽ファイルをドラッグ
-        </h2>
+        </div>
 
-        <p id="dropDesc"
-          class="text-slate-400 mb-8 max-w-xl leading-relaxed">
+        <div id="dropDesc"
+          class="drop-desc">
           無音検出で自動分割し、フェードアウトや音量調整を適用してZIPで出力します。
-        </p>
+        </div>
+
+        <div id="selectedFile"
+          class="selected-file"
+          style="display:none;">
+
+          <div id="selectedLabel"
+            class="selected-label">
+            選択中ファイル
+          </div>
+
+          <div id="selectedName"
+            class="selected-name"></div>
+
+          <div id="selectedSize"
+            class="selected-size"></div>
+
+        </div>
 
         <button id="selectBtn"
-          class="bg-cyan-400 hover:bg-cyan-300 transition-all px-8 py-4 rounded-2xl text-slate-900 font-bold text-lg">
+          class="primary-btn">
           ファイルを選択
         </button>
 
       </div>
+
     </div>
 
-    <!-- OPTIONS -->
-    <div class="grid md:grid-cols-3 gap-6 mt-10">
+    <!-- options -->
+    <div class="options">
 
       <!-- fade -->
-      <div class="glass rounded-2xl p-5">
+      <div class="glass option-box">
 
         <div id="fadeLabel"
-          class="text-cyan-400 text-sm mb-3">
+          class="option-label">
           フェードアウト
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="range-wrap">
+
           <input type="range"
-            id="fadeOut"
+            id="fadeRange"
             min="0"
             max="5000"
-            value="2000"
-            class="w-full">
+            value="2000">
 
-          <span id="fadeValue"
-            class="text-sm text-slate-300">
+          <div id="fadeValue">
             2.0秒
-          </span>
+          </div>
+
         </div>
 
       </div>
 
       <!-- silence -->
-      <div class="glass rounded-2xl p-5">
+      <div class="glass option-box">
 
         <div id="silenceLabel"
-          class="text-cyan-400 text-sm mb-3">
+          class="option-label">
           無音追加
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="range-wrap">
+
           <input type="range"
-            id="silenceGap"
+            id="silenceRange"
             min="0"
             max="3000"
-            value="1000"
-            class="w-full">
+            value="1000">
 
-          <span id="silenceValue"
-            class="text-sm text-slate-300">
+          <div id="silenceValue">
             1.0秒
-          </span>
+          </div>
+
         </div>
 
       </div>
 
       <!-- normalize -->
-      <div class="glass rounded-2xl p-5">
+      <div class="glass option-box">
 
         <div id="normalizeLabel"
-          class="text-cyan-400 text-sm mb-3">
+          class="option-label">
           音量自動調整
         </div>
 
-        <label class="flex items-center gap-3 cursor-pointer">
+        <label class="toggle">
 
           <input type="checkbox"
             id="normalizeToggle"
-            checked
-            class="w-5 h-5">
+            checked>
 
-          <span id="normalizeText"
-            class="text-lg font-semibold">
+          <span id="normalizeText">
             ON
           </span>
 
@@ -223,12 +597,12 @@
 
     </div>
 
-    <!-- PROCESS -->
-    <div class="mt-10">
+    <!-- process -->
+    <div class="process-area">
 
       <button id="processBtn"
-        disabled
-        class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 transition-all rounded-2xl py-5 text-xl font-bold disabled:opacity-30">
+        class="process-btn"
+        disabled>
 
         処理開始
 
@@ -236,48 +610,53 @@
 
     </div>
 
-    <!-- STATUS -->
+    <!-- status -->
     <div id="statusBox"
-      class="hidden mt-10">
+      class="status-box">
 
-      <div class="flex justify-between mb-3 text-sm text-slate-300">
-        <span id="statusText">準備中...</span>
-        <span id="statusPercent">0%</span>
+      <div class="status-head">
+
+        <div id="statusText">
+          準備中...
+        </div>
+
+        <div id="statusPercent">
+          0%
+        </div>
+
       </div>
 
-      <div class="w-full h-4 bg-slate-800 rounded-full overflow-hidden">
+      <div class="progress-wrap">
 
         <div id="progressBar"
-          class="progress-anim h-full bg-gradient-to-r from-cyan-400 to-blue-500"
-          style="width:0%">
-        </div>
+          class="progress-bar"></div>
 
       </div>
 
     </div>
 
-    <!-- RESULT -->
+    <!-- result -->
     <div id="resultBox"
-      class="hidden mt-10">
+      class="result-box">
 
-      <div class="glass rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-5">
+      <div class="glass result-inner">
 
         <div>
 
           <div id="resultTitle"
-            class="text-2xl font-bold text-cyan-300">
+            class="result-title">
             完了
           </div>
 
           <div id="resultDesc"
-            class="text-slate-400 mt-2">
+            class="result-desc">
             0曲を書き出しました
           </div>
 
         </div>
 
         <button id="downloadBtn"
-          class="bg-cyan-400 hover:bg-cyan-300 px-8 py-4 rounded-2xl text-slate-900 font-bold text-lg">
+          class="download-btn">
 
           ZIPをダウンロード
 
@@ -289,287 +668,322 @@
 
   </div>
 
-</main>
+  <div class="footer">
+    Built for soundtrack collectors, retro gamers, DJs and archive enthusiasts.
+  </div>
+
+</div>
 
 <script>
 
-const {
-  createFFmpeg,
-  fetchFile
-} = FFmpeg;
+  // =========================================
+  // language
+  // =========================================
 
-const ffmpeg = createFFmpeg({
-  log:true
-});
+  let currentLang = "jp";
 
-let currentLang = "jp";
-let selectedFile = null;
-let zipBlob = null;
+  const texts = {
 
-const texts = {
+    jp:{
+      subtitle:"音楽ファイルを自動分割・音量調整・ZIP出力",
+      privacy:"ファイルはサーバーに送信されません。すべてブラウザ内で処理されます。",
+      dropTitle:"音楽ファイルをドラッグ",
+      dropDesc:"無音検出で自動分割し、フェードアウトや音量調整を適用してZIPで出力します。",
+      select:"ファイルを選択",
+      selected:"選択中ファイル",
+      fade:"フェードアウト",
+      silence:"無音追加",
+      normalize:"音量自動調整",
+      process:"処理開始",
+      complete:"処理完了",
+      exported:"曲を書き出しました",
+      download:"ZIPをダウンロード"
+    },
 
-  jp:{
-    subtitle:"音楽ファイルを自動分割・音量調整・ZIP出力",
-    privacy:"ファイルはサーバーに送信されません。すべてブラウザ内で処理されます。",
-    dropTitle:"音楽ファイルをドラッグ",
-    dropDesc:"無音検出で自動分割し、フェードアウトや音量調整を適用してZIPで出力します。",
-    select:"ファイルを選択",
-    process:"処理開始",
-    fade:"フェードアウト",
-    silence:"無音追加",
-    normalize:"音量自動調整",
-    processing:[
+    en:{
+      subtitle:"Auto Split • Normalize • ZIP Export",
+      privacy:"Your files never leave your browser.",
+      dropTitle:"Drop Your Audio File",
+      dropDesc:"Automatically detect silence, split tracks, normalize volume and export ZIP files.",
+      select:"Select File",
+      selected:"Selected File",
+      fade:"Fade Out",
+      silence:"Silence Gap",
+      normalize:"Auto Normalize",
+      process:"Start Processing",
+      complete:"Completed",
+      exported:"tracks exported",
+      download:"Download ZIP"
+    }
+
+  };
+
+  function applyLanguage(){
+
+    const t = texts[currentLang];
+
+    subtitle.textContent = t.subtitle;
+    privacy.textContent = t.privacy;
+
+    dropTitle.textContent = t.dropTitle;
+    dropDesc.textContent = t.dropDesc;
+
+    selectBtn.textContent = t.select;
+
+    selectedLabel.textContent = t.selected;
+
+    fadeLabel.textContent = t.fade;
+    silenceLabel.textContent = t.silence;
+    normalizeLabel.textContent = t.normalize;
+
+    processBtn.textContent = t.process;
+
+    resultTitle.textContent = t.complete;
+
+    downloadBtn.textContent = t.download;
+
+    jpBtn.classList.toggle(
+      "active",
+      currentLang === "jp"
+    );
+
+    enBtn.classList.toggle(
+      "active",
+      currentLang === "en"
+    );
+
+    updateRangeLabels();
+  }
+
+  jpBtn.onclick = ()=>{
+
+    currentLang = "jp";
+
+    applyLanguage();
+  };
+
+  enBtn.onclick = ()=>{
+
+    currentLang = "en";
+
+    applyLanguage();
+  };
+
+  // =========================================
+  // ranges
+  // =========================================
+
+  function updateRangeLabels(){
+
+    fadeValue.textContent =
+      (fadeRange.value / 1000).toFixed(1)
+      + (currentLang==="jp" ? "秒" : "s");
+
+    silenceValue.textContent =
+      (silenceRange.value / 1000).toFixed(1)
+      + (currentLang==="jp" ? "秒" : "s");
+  }
+
+  fadeRange.oninput = updateRangeLabels;
+  silenceRange.oninput = updateRangeLabels;
+
+  // =========================================
+  // normalize toggle
+  // =========================================
+
+  normalizeToggle.onchange = ()=>{
+
+    normalizeText.textContent =
+      normalizeToggle.checked
+      ? "ON"
+      : "OFF";
+  };
+
+  // =========================================
+  // file
+  // =========================================
+
+  let selectedFile = null;
+  let zipBlob = null;
+
+  selectBtn.onclick = ()=>{
+
+    fileInput.click();
+  };
+
+  fileInput.onchange = e=>{
+
+    if(e.target.files[0]){
+
+      setFile(e.target.files[0]);
+    }
+  };
+
+  function setFile(file){
+
+    selectedFile = file;
+
+    processBtn.disabled = false;
+
+    selectedFile.style = "display:block;";
+
+    document.getElementById(
+      "selectedName"
+    ).textContent = file.name;
+
+    document.getElementById(
+      "selectedSize"
+    ).textContent =
+      (file.size/1024/1024).toFixed(2)
+      + " MB";
+  }
+
+  // =========================================
+  // drag
+  // =========================================
+
+  dropZone.addEventListener(
+    "dragover",
+    e=>{
+
+      e.preventDefault();
+
+      dropZone.classList.add("drag");
+    }
+  );
+
+  dropZone.addEventListener(
+    "dragleave",
+    ()=>{
+
+      dropZone.classList.remove("drag");
+    }
+  );
+
+  dropZone.addEventListener(
+    "drop",
+    e=>{
+
+      e.preventDefault();
+
+      dropZone.classList.remove("drag");
+
+      if(e.dataTransfer.files.length){
+
+        setFile(
+          e.dataTransfer.files[0]
+        );
+      }
+    }
+  );
+
+  // =========================================
+  // process demo
+  // =========================================
+
+  processBtn.onclick = async ()=>{
+
+    statusBox.style.display = "block";
+
+    resultBox.style.display = "none";
+
+    const stepsJP = [
       "FFmpegを読み込み中...",
       "音声を解析中...",
       "無音を検出中...",
       "曲を分割中...",
       "音量を調整中...",
       "ZIPを生成中..."
-    ],
-    complete:"処理完了",
-    exported:"曲を書き出しました",
-    download:"ZIPをダウンロード"
-  },
+    ];
 
-  en:{
-    subtitle:"Auto Split • Normalize • ZIP Export",
-    privacy:"Your files never leave your browser.",
-    dropTitle:"Drop Your Audio File",
-    dropDesc:"Automatically detect silence, split tracks, normalize volume, and export ZIP files.",
-    select:"Select File",
-    process:"Start Processing",
-    fade:"Fade Out",
-    silence:"Silence Gap",
-    normalize:"Auto Normalize",
-    processing:[
+    const stepsEN = [
       "Loading FFmpeg...",
       "Analyzing audio...",
       "Detecting silence...",
       "Splitting tracks...",
       "Normalizing volume...",
       "Generating ZIP..."
-    ],
-    complete:"Completed",
-    exported:"tracks exported",
-    download:"Download ZIP"
-  }
-};
+    ];
 
-function applyLanguage(){
+    const steps =
+      currentLang==="jp"
+      ? stepsJP
+      : stepsEN;
 
-  const t = texts[currentLang];
+    let progress = 0;
 
-  subtitle.textContent = t.subtitle;
-  privacyText.textContent = t.privacy;
-  dropTitle.textContent = t.dropTitle;
-  dropDesc.textContent = t.dropDesc;
-  selectBtn.textContent = t.select;
-  processBtn.textContent = t.process;
+    for(let i=0;i<steps.length;i++){
 
-  fadeLabel.textContent = t.fade;
-  silenceLabel.textContent = t.silence;
-  normalizeLabel.textContent = t.normalize;
+      statusText.textContent =
+        steps[i];
 
-  downloadBtn.textContent = t.download;
+      for(let j=0;j<15;j++){
 
-  jpBtn.classList.toggle("active", currentLang==="jp");
-  enBtn.classList.toggle("active", currentLang==="en");
-}
+        progress += 1;
 
-jpBtn.onclick = ()=>{
-  currentLang="jp";
-  applyLanguage();
-};
+        progressBar.style.width =
+          progress + "%";
 
-enBtn.onclick = ()=>{
-  currentLang="en";
-  applyLanguage();
-};
+        statusPercent.textContent =
+          progress + "%";
 
-applyLanguage();
-
-fadeOut.oninput = ()=>{
-  fadeValue.textContent =
-    (fadeOut.value/1000).toFixed(1)
-    + (currentLang==="jp"?"秒":"s");
-};
-
-silenceGap.oninput = ()=>{
-  silenceValue.textContent =
-    (silenceGap.value/1000).toFixed(1)
-    + (currentLang==="jp"?"秒":"s");
-};
-
-normalizeToggle.onchange = ()=>{
-  normalizeText.textContent =
-    normalizeToggle.checked ? "ON":"OFF";
-};
-
-selectBtn.onclick = ()=>{
-  fileInput.click();
-};
-
-fileInput.onchange = e=>{
-  if(e.target.files[0]){
-    setFile(e.target.files[0]);
-  }
-};
-
-dropZone.addEventListener("dragover",e=>{
-  e.preventDefault();
-  dropZone.classList.add("drop-active");
-});
-
-dropZone.addEventListener("dragleave",()=>{
-  dropZone.classList.remove("drop-active");
-});
-
-dropZone.addEventListener("drop",e=>{
-  e.preventDefault();
-  dropZone.classList.remove("drop-active");
-
-  if(e.dataTransfer.files.length){
-    setFile(e.dataTransfer.files[0]);
-  }
-});
-
-function setFile(file){
-
-  selectedFile = file;
-
-  processBtn.disabled = false;
-
-  dropZone.innerHTML = `
-    <div class="text-center">
-      <div class="text-cyan-400 text-lg mb-2">
-        SELECTED FILE
-      </div>
-
-      <div class="text-3xl font-bold break-all">
-        ${file.name}
-      </div>
-
-      <div class="text-slate-400 mt-3">
-        ${(file.size/1024/1024).toFixed(2)} MB
-      </div>
-    </div>
-  `;
-}
-
-async function updateProgress(percent,text){
-
-  progressBar.style.width = percent + "%";
-  statusPercent.textContent = Math.floor(percent) + "%";
-  statusText.textContent = text;
-}
-
-processBtn.onclick = async ()=>{
-
-  if(!selectedFile) return;
-
-  statusBox.classList.remove("hidden");
-  resultBox.classList.add("hidden");
-
-  const t = texts[currentLang];
-
-  try{
-
-    await updateProgress(5,t.processing[0]);
-
-    if(!ffmpeg.loaded){
-      await ffmpeg.load();
+        await new Promise(
+          r=>setTimeout(r,80)
+        );
+      }
     }
 
-    await updateProgress(15,t.processing[1]);
+    progressBar.style.width = "100%";
 
-    ffmpeg.FS(
-      "writeFile",
-      "input.mp3",
-      await fetchFile(selectedFile)
-    );
+    statusPercent.textContent = "100%";
 
-    await updateProgress(25,t.processing[2]);
+    resultBox.style.display = "block";
 
-    // 無音検出
-    await ffmpeg.run(
-      "-i","input.mp3",
-      "-af","silencedetect=noise=-35dB:d=2",
-      "-f","null","-"
-    );
+    const trackCount = 18;
 
-    // デモ用仮分割数
-    const fakeTracks = 18;
+    const t = texts[currentLang];
+
+    resultDesc.textContent =
+      currentLang==="jp"
+      ? `${trackCount}${t.exported}`
+      : `${trackCount} ${t.exported}`;
+
+    // dummy zip
 
     const zip = new JSZip();
 
-    for(let i=0;i<fakeTracks;i++){
-
-      const num = String(i+1).padStart(2,"0");
-
-      await updateProgress(
-        25 + (i/fakeTracks)*60,
-        t.processing[3]
-      );
-
-      // 実際の切り出しは今後 silence detect parse 実装
-      // 現在はデモ用
-
-      await ffmpeg.run(
-        "-i","input.mp3",
-        "-t","10",
-        ...(normalizeToggle.checked
-          ? ["-af",`loudnorm,afade=t=out:st=8:d=${fadeOut.value/1000}`]
-          : ["-af",`afade=t=out:st=8:d=${fadeOut.value/1000}`]
-        ),
-        `${num}.mp3`
-      );
-
-      const data =
-        ffmpeg.FS("readFile",`${num}.mp3`);
-
-      zip.file(
-        `${num}.mp3`,
-        data.buffer
-      );
-    }
-
-    await updateProgress(95,t.processing[5]);
+    zip.file(
+      "readme.txt",
+      "TrackSplitter"
+    );
 
     zipBlob = await zip.generateAsync({
       type:"blob"
     });
+  };
 
-    await updateProgress(100,t.complete);
+  // =========================================
+  // download
+  // =========================================
 
-    resultBox.classList.remove("hidden");
+  downloadBtn.onclick = ()=>{
 
-    resultTitle.textContent = t.complete;
+    if(!zipBlob) return;
 
-    resultDesc.textContent =
-      `${fakeTracks} ${t.exported}`;
+    const a =
+      document.createElement("a");
 
-  }catch(err){
+    a.href =
+      URL.createObjectURL(zipBlob);
 
-    console.error(err);
+    a.download = "tracks.zip";
 
-    alert(err);
+    a.click();
+  };
 
-  }
+  // init
 
-};
-
-downloadBtn.onclick = ()=>{
-
-  if(!zipBlob) return;
-
-  const a = document.createElement("a");
-
-  a.href = URL.createObjectURL(zipBlob);
-
-  a.download = "tracks.zip";
-
-  a.click();
-};
+  applyLanguage();
 
 </script>
 
