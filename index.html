@@ -886,36 +886,27 @@ processBtn.onclick = async ()=>{
   if(!selectedFile) return;
 
   statusBox.style.display = "block";
+
   resultBox.style.display = "none";
-
-  const stepsJP = [
-    "FFmpegを読み込み中...",
-    "音声を解析中...",
-    "無音を検出中..."
-  ];
-
-  const stepsEN = [
-    "Loading FFmpeg...",
-    "Analyzing audio...",
-    "Detecting silence..."
-  ];
-
-  const steps =
-    currentLang==="jp"
-    ? stepsJP
-    : stepsEN;
 
   try{
 
-    // -----------------------------------
-    // load ffmpeg
-    // -----------------------------------
+    // -----------------------------
+    // progress init
+    // -----------------------------
 
-    statusText.textContent = steps[0];
+    progressBar.style.width = "5%";
 
-    progressBar.style.width = "10%";
+    statusPercent.textContent = "5%";
 
-    statusPercent.textContent = "10%";
+    statusText.textContent =
+      currentLang==="jp"
+      ? "FFmpegを読み込み中..."
+      : "Loading FFmpeg...";
+
+    // -----------------------------
+    // ffmpeg
+    // -----------------------------
 
     const {
       createFFmpeg,
@@ -928,15 +919,18 @@ processBtn.onclick = async ()=>{
 
     await ffmpeg.load();
 
-    // -----------------------------------
+    // -----------------------------
     // input
-    // -----------------------------------
+    // -----------------------------
 
-    statusText.textContent = steps[1];
+    progressBar.style.width = "15%";
 
-    progressBar.style.width = "25%";
+    statusPercent.textContent = "15%";
 
-    statusPercent.textContent = "25%";
+    statusText.textContent =
+      currentLang==="jp"
+      ? "音声を解析中..."
+      : "Analyzing audio...";
 
     ffmpeg.FS(
       "writeFile",
@@ -944,38 +938,47 @@ processBtn.onclick = async ()=>{
       await fetchFile(selectedFile)
     );
 
-    // -----------------------------------
-    // capture logs
-    // -----------------------------------
+    // -----------------------------
+    // logs
+    // -----------------------------
 
     let ffmpegLogs = "";
 
-    ffmpeg.setLogger(({ type, message }) => {
+    ffmpeg.setLogger(({
+      type,
+      message
+    })=>{
 
       ffmpegLogs += message + "\n";
 
     });
 
-    // -----------------------------------
+    // -----------------------------
     // silence detect
-    // -----------------------------------
+    // -----------------------------
 
-    statusText.textContent = steps[2];
+    progressBar.style.width = "30%";
 
-    progressBar.style.width = "45%";
+    statusPercent.textContent = "30%";
 
-    statusPercent.textContent = "45%";
+    statusText.textContent =
+      currentLang==="jp"
+      ? "無音を検出中..."
+      : "Detecting silence...";
 
     await ffmpeg.run(
+
       "-i","input.mp3",
-      "-af","silencedetect=noise=-35dB:d=2",
-      "-f","null",
-      "-"
+
+      "-af",
+      "silencedetect=noise=-35dB:d=2",
+
+      "-f","null","-"
     );
 
-    // -----------------------------------
+    // -----------------------------
     // parse silence
-    // -----------------------------------
+    // -----------------------------
 
     const silenceStarts = [];
     const silenceEnds = [];
@@ -992,6 +995,7 @@ processBtn.onclick = async ()=>{
       (match = startRegex.exec(ffmpegLogs))
       !== null
     ){
+
       silenceStarts.push(
         parseFloat(match[1])
       );
@@ -1001,24 +1005,15 @@ processBtn.onclick = async ()=>{
       (match = endRegex.exec(ffmpegLogs))
       !== null
     ){
+
       silenceEnds.push(
         parseFloat(match[1])
       );
     }
 
-    console.log(
-      "silence starts",
-      silenceStarts
-    );
-
-    console.log(
-      "silence ends",
-      silenceEnds
-    );
-
-    // -----------------------------------
+    // -----------------------------
     // build tracks
-    // -----------------------------------
+    // -----------------------------
 
     const tracks = [];
 
@@ -1036,28 +1031,167 @@ processBtn.onclick = async ()=>{
           start,
           end
         });
-
       }
+    // -----------------------------
+// last track
+// -----------------------------
 
-      lastEnd = silenceEnds[i] || end;
+const durationMatch =
+  ffmpegLogs.match(
+    /Duration: (\d+):(\d+):([\d.]+)/
+  );
+
+if(durationMatch){
+
+  const totalSeconds =
+
+    parseInt(durationMatch[1]) * 3600
+    +
+
+    parseInt(durationMatch[2]) * 60
+    +
+
+    parseFloat(durationMatch[3]);
+
+  if(totalSeconds - lastEnd > 5){
+
+    tracks.push({
+
+      start:lastEnd,
+
+      end:totalSeconds
+
+    });
+  }
+}
+      lastEnd =
+        silenceEnds[i] || end;
     }
 
     console.log("tracks",tracks);
 
-    // -----------------------------------
+    // -----------------------------
+    // export tracks
+    // -----------------------------
+
+    const exportedFiles = [];
+
+    for(let i=0;i<tracks.length;i++){
+
+      const track = tracks[i];
+
+      const num =
+        String(i+1).padStart(2,"0");
+
+      const filename =
+        `${num}.mp3`;
+
+      const percent =
+        35 + Math.floor(
+          (i / tracks.length) * 50
+        );
+
+      progressBar.style.width =
+        percent + "%";
+
+      statusPercent.textContent =
+        percent + "%";
+
+      statusText.textContent =
+        currentLang==="jp"
+        ? `${filename} を出力中...`
+        : `Exporting ${filename}...`;
+
+      const duration =
+        track.end - track.start;
+
+      await ffmpeg.run(
+
+        "-i","input.mp3",
+
+        "-ss",
+        String(track.start),
+
+        "-t",
+        String(duration),
+
+        "-q:a","2",
+        
+        "-af",
+
+        normalizeToggle.checked
+        
+        ? `loudnorm,afade=t=out:st=${Math.max(duration - (fadeRange.value / 1000),0)}:d=${fadeRange.value / 1000}`
+
+        : `afade=t=out:st=${Math.max(duration - (fadeRange.value / 1000),0)}:d=${fadeRange.value / 1000}`,
+        
+        filename
+      );
+
+      const data =
+        ffmpeg.FS(
+          "readFile",
+          filename
+        );
+
+      exportedFiles.push({
+        name:filename,
+        data
+      });
+
+      console.log(
+        "exported",
+        filename
+      );
+    }
+
+    // -----------------------------
+    // zip
+    // -----------------------------
+
+    progressBar.style.width = "90%";
+
+    statusPercent.textContent = "90%";
+
+    statusText.textContent =
+      currentLang==="jp"
+      ? "ZIP生成中..."
+      : "Generating ZIP...";
+
+    const zip = new JSZip();
+
+    for(const file of exportedFiles){
+
+      zip.file(
+        file.name,
+        file.data
+      );
+    }
+
+    zipBlob =
+      await zip.generateAsync({
+        type:"blob"
+      });
+
+    // -----------------------------
     // finish
-    // -----------------------------------
+    // -----------------------------
 
     progressBar.style.width = "100%";
 
     statusPercent.textContent = "100%";
 
+    statusText.textContent =
+      currentLang==="jp"
+      ? "完了"
+      : "Completed";
+
     resultBox.style.display = "block";
 
     resultDesc.textContent =
       currentLang==="jp"
-      ? `${tracks.length}曲検出しました`
-      : `${tracks.length} tracks detected`;
+      ? `${tracks.length}曲を書き出しました`
+      : `${tracks.length} tracks exported`;
 
   }catch(err){
 
@@ -1068,7 +1202,6 @@ processBtn.onclick = async ()=>{
   }
 
 };
-
   // =========================================
   // download
   // =========================================
