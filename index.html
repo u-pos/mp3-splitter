@@ -881,57 +881,172 @@
   // process demo
   // =========================================
 
-  processBtn.onclick = async ()=>{
+processBtn.onclick = async ()=>{
 
-    statusBox.style.display = "block";
+  if(!selectedFile) return;
 
-    resultBox.style.display = "none";
+  statusBox.style.display = "block";
+  resultBox.style.display = "none";
 
-    const stepsJP = [
-      "FFmpegを読み込み中...",
-      "音声を解析中...",
-      "無音を検出中...",
-      "曲を分割中...",
-      "音量を調整中...",
-      "ZIPを生成中..."
-    ];
+  const stepsJP = [
+    "FFmpegを読み込み中...",
+    "音声を解析中...",
+    "無音を検出中..."
+  ];
 
-    const stepsEN = [
-      "Loading FFmpeg...",
-      "Analyzing audio...",
-      "Detecting silence...",
-      "Splitting tracks...",
-      "Normalizing volume...",
-      "Generating ZIP..."
-    ];
+  const stepsEN = [
+    "Loading FFmpeg...",
+    "Analyzing audio...",
+    "Detecting silence..."
+  ];
 
-    const steps =
-      currentLang==="jp"
-      ? stepsJP
-      : stepsEN;
+  const steps =
+    currentLang==="jp"
+    ? stepsJP
+    : stepsEN;
 
-    let progress = 0;
+  try{
 
-    for(let i=0;i<steps.length;i++){
+    // -----------------------------------
+    // load ffmpeg
+    // -----------------------------------
 
-      statusText.textContent =
-        steps[i];
+    statusText.textContent = steps[0];
 
-      for(let j=0;j<15;j++){
+    progressBar.style.width = "10%";
 
-        progress += 1;
+    statusPercent.textContent = "10%";
 
-        progressBar.style.width =
-          progress + "%";
+    const {
+      createFFmpeg,
+      fetchFile
+    } = FFmpeg;
 
-        statusPercent.textContent =
-          progress + "%";
+    const ffmpeg = createFFmpeg({
+      log:true
+    });
 
-        await new Promise(
-          r=>setTimeout(r,80)
-        );
-      }
+    await ffmpeg.load();
+
+    // -----------------------------------
+    // input
+    // -----------------------------------
+
+    statusText.textContent = steps[1];
+
+    progressBar.style.width = "25%";
+
+    statusPercent.textContent = "25%";
+
+    ffmpeg.FS(
+      "writeFile",
+      "input.mp3",
+      await fetchFile(selectedFile)
+    );
+
+    // -----------------------------------
+    // capture logs
+    // -----------------------------------
+
+    let ffmpegLogs = "";
+
+    ffmpeg.setLogger(({ type, message }) => {
+
+      ffmpegLogs += message + "\n";
+
+    });
+
+    // -----------------------------------
+    // silence detect
+    // -----------------------------------
+
+    statusText.textContent = steps[2];
+
+    progressBar.style.width = "45%";
+
+    statusPercent.textContent = "45%";
+
+    await ffmpeg.run(
+      "-i","input.mp3",
+      "-af","silencedetect=noise=-35dB:d=2",
+      "-f","null",
+      "-"
+    );
+
+    // -----------------------------------
+    // parse silence
+    // -----------------------------------
+
+    const silenceStarts = [];
+    const silenceEnds = [];
+
+    const startRegex =
+      /silence_start: ([0-9.]+)/g;
+
+    const endRegex =
+      /silence_end: ([0-9.]+)/g;
+
+    let match;
+
+    while(
+      (match = startRegex.exec(ffmpegLogs))
+      !== null
+    ){
+      silenceStarts.push(
+        parseFloat(match[1])
+      );
     }
+
+    while(
+      (match = endRegex.exec(ffmpegLogs))
+      !== null
+    ){
+      silenceEnds.push(
+        parseFloat(match[1])
+      );
+    }
+
+    console.log(
+      "silence starts",
+      silenceStarts
+    );
+
+    console.log(
+      "silence ends",
+      silenceEnds
+    );
+
+    // -----------------------------------
+    // build tracks
+    // -----------------------------------
+
+    const tracks = [];
+
+    let lastEnd = 0;
+
+    for(let i=0;i<silenceStarts.length;i++){
+
+      const start = lastEnd;
+
+      const end = silenceStarts[i];
+
+      if(end - start > 5){
+
+        tracks.push({
+          start,
+          end
+        });
+
+      }
+
+      lastEnd = silenceEnds[i] || end;
+    }
+
+    console.log("tracks",tracks);
+
+    // -----------------------------------
+    // finish
+    // -----------------------------------
 
     progressBar.style.width = "100%";
 
@@ -939,28 +1054,20 @@
 
     resultBox.style.display = "block";
 
-    const trackCount = 18;
-
-    const t = texts[currentLang];
-
     resultDesc.textContent =
       currentLang==="jp"
-      ? `${trackCount}${t.exported}`
-      : `${trackCount} ${t.exported}`;
+      ? `${tracks.length}曲検出しました`
+      : `${tracks.length} tracks detected`;
 
-    // dummy zip
+  }catch(err){
 
-    const zip = new JSZip();
+    console.error(err);
 
-    zip.file(
-      "readme.txt",
-      "TrackSplitter"
-    );
+    alert(err);
 
-    zipBlob = await zip.generateAsync({
-      type:"blob"
-    });
-  };
+  }
+
+};
 
   // =========================================
   // download
