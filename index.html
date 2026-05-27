@@ -799,87 +799,90 @@
       : "OFF";
   };
 
-  // =========================================
-  // file
-  // =========================================
+ // =========================================
+// file
+// =========================================
 
-  let selectedFile = null;
-  let zipBlob = null;
+let selectedFile = null;
+let zipBlob = null;
 
-  selectBtn.onclick = ()=>{
+selectBtn.onclick = ()=>{
 
-    fileInput.click();
-  };
+  fileInput.click();
+};
 
-  fileInput.onchange = e=>{
+fileInput.onchange = e=>{
 
-    if(e.target.files[0]){
+  if(e.target.files[0]){
 
-      setFile(e.target.files[0]);
-    }
-  };
-
-  function setFile(file){
-
-    selectedFile = file;
-
-    processBtn.disabled = false;
-
-    selectedFile.style = "display:block;";
-
-    document.getElementById(
-      "selectedName"
-    ).textContent = file.name;
-
-    document.getElementById(
-      "selectedSize"
-    ).textContent =
-      (file.size/1024/1024).toFixed(2)
-      + " MB";
+    setFile(e.target.files[0]);
   }
+};
 
-  // =========================================
-  // drag
-  // =========================================
+function setFile(file){
 
-  dropZone.addEventListener(
-    "dragover",
-    e=>{
+  selectedFile = file;
 
-      e.preventDefault();
+  processBtn.disabled = false;
 
-      dropZone.classList.add("drag");
+  // ← ここ修正
+  document.getElementById(
+    "selectedFile"
+  ).style.display = "block";
+
+  document.getElementById(
+    "selectedName"
+  ).textContent = file.name;
+
+  document.getElementById(
+    "selectedSize"
+  ).textContent =
+    (file.size/1024/1024).toFixed(2)
+    + " MB";
+}
+
+// =========================================
+// drag
+// =========================================
+
+dropZone.addEventListener(
+  "dragover",
+  e=>{
+
+    e.preventDefault();
+
+    dropZone.classList.add("drag");
+  }
+);
+
+dropZone.addEventListener(
+  "dragleave",
+  ()=>{
+
+    dropZone.classList.remove("drag");
+  }
+);
+
+dropZone.addEventListener(
+  "drop",
+  e=>{
+
+    e.preventDefault();
+
+    dropZone.classList.remove("drag");
+
+    if(e.dataTransfer.files.length){
+
+      setFile(
+        e.dataTransfer.files[0]
+      );
     }
-  );
+  }
+);
 
-  dropZone.addEventListener(
-    "dragleave",
-    ()=>{
-
-      dropZone.classList.remove("drag");
-    }
-  );
-
-  dropZone.addEventListener(
-    "drop",
-    e=>{
-
-      e.preventDefault();
-
-      dropZone.classList.remove("drag");
-
-      if(e.dataTransfer.files.length){
-
-        setFile(
-          e.dataTransfer.files[0]
-        );
-      }
-    }
-  );
-
-  // =========================================
-  // process demo
-  // =========================================
+// =========================================
+// process
+// =========================================
 
 processBtn.onclick = async ()=>{
 
@@ -1032,40 +1035,42 @@ processBtn.onclick = async ()=>{
           end
         });
       }
-    // -----------------------------
-// last track
-// -----------------------------
 
-const durationMatch =
-  ffmpegLogs.match(
-    /Duration: (\d+):(\d+):([\d.]+)/
-  );
-
-if(durationMatch){
-
-  const totalSeconds =
-
-    parseInt(durationMatch[1]) * 3600
-    +
-
-    parseInt(durationMatch[2]) * 60
-    +
-
-    parseFloat(durationMatch[3]);
-
-  if(totalSeconds - lastEnd > 5){
-
-    tracks.push({
-
-      start:lastEnd,
-
-      end:totalSeconds
-
-    });
-  }
-}
       lastEnd =
         silenceEnds[i] || end;
+    }
+
+    // -----------------------------
+    // last track
+    // -----------------------------
+
+    const durationMatch =
+      ffmpegLogs.match(
+        /Duration: (\d+):(\d+):([\d.]+)/
+      );
+
+    if(durationMatch){
+
+      const totalSeconds =
+
+        parseInt(durationMatch[1]) * 3600
+        +
+
+        parseInt(durationMatch[2]) * 60
+        +
+
+        parseFloat(durationMatch[3]);
+
+      if(totalSeconds - lastEnd > 5){
+
+        tracks.push({
+
+          start:lastEnd,
+
+          end:totalSeconds
+
+        });
+      }
     }
 
     console.log("tracks",tracks);
@@ -1116,15 +1121,15 @@ if(durationMatch){
         String(duration),
 
         "-q:a","2",
-        
+
         "-af",
 
         normalizeToggle.checked
-        
-        ? `loudnorm,afade=t=out:st=${Math.max(duration - (fadeRange.value / 1000),0)}:d=${fadeRange.value / 1000}`
 
-        : `afade=t=out:st=${Math.max(duration - (fadeRange.value / 1000),0)}:d=${fadeRange.value / 1000}`,
-        
+        ? `loudnorm,afade=t=out:st=${Math.max(duration - (fadeRange.value / 1000),0)}:d=${fadeRange.value / 1000},apad=pad_dur=${silenceRange.value / 1000}`
+
+        : `afade=t=out:st=${Math.max(duration - (fadeRange.value / 1000),0)}:d=${fadeRange.value / 1000},apad=pad_dur=${silenceRange.value / 1000}`,
+
         filename
       );
 
@@ -1202,25 +1207,25 @@ if(durationMatch){
   }
 
 };
-  // =========================================
-  // download
-  // =========================================
 
-  downloadBtn.onclick = ()=>{
+// =========================================
+// download
+// =========================================
 
-    if(!zipBlob) return;
+downloadBtn.onclick = ()=>{
 
-    const a =
-      document.createElement("a");
+  if(!zipBlob) return;
 
-    a.href =
-      URL.createObjectURL(zipBlob);
+  const a =
+    document.createElement("a");
 
-    a.download = "tracks.zip";
+  a.href =
+    URL.createObjectURL(zipBlob);
 
-    a.click();
-  };
+  a.download = "tracks.zip";
 
+  a.click();
+};
   // init
 
   applyLanguage();
