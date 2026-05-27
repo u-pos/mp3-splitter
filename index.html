@@ -1,436 +1,366 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-  <title>Track Splitter</title>
-
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-
-  <!-- FFmpeg -->
-  <script type="module">
-  import {
-    FFmpeg
-  } from "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js";
-  
-  import {
-    fetchFile
-  } from "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js";
-  
-  window.FFmpegModule = {
-    FFmpeg,
-    fetchFile
-  };
-  
-  </script>
-
-  <!-- JSZip -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
-  <style>
-
-    *{
-      box-sizing:border-box;
-    }
-
-    body{
-      margin:0;
-      min-height:100vh;
-      color:white;
-      overflow-x:hidden;
-
-      font-family:
-        Inter,
-        "Noto Sans JP",
-        sans-serif;
-
-      background:
-        radial-gradient(circle at top left,#1e293b 0%,transparent 30%),
-        radial-gradient(circle at bottom right,#0f172a 0%,transparent 30%),
-        #020617;
-    }
-
-    .bg-orb{
-      position:fixed;
-      border-radius:9999px;
-      filter:blur(120px);
-      opacity:.15;
-      pointer-events:none;
-    }
-
-    .orb1{
-      width:500px;
-      height:500px;
-      background:#06b6d4;
-      top:-200px;
-      left:-150px;
-    }
-
-    .orb2{
-      width:500px;
-      height:500px;
-      background:#3b82f6;
-      bottom:-200px;
-      right:-150px;
-    }
-
-    .container{
-      position:relative;
-      z-index:10;
-      max-width:1100px;
-      margin:auto;
-      padding:40px 20px 80px;
-    }
-
-    .topbar{
-      display:flex;
-      justify-content:flex-end;
-      gap:10px;
-      margin-bottom:20px;
-    }
-
-    .lang-btn{
-      border:none;
-      color:white;
-      padding:10px 16px;
-      border-radius:14px;
-      cursor:pointer;
-
-      background:rgba(255,255,255,.06);
-
-      border:1px solid rgba(255,255,255,.08);
-
-      backdrop-filter:blur(10px);
-
-      transition:.2s;
-    }
-
-    .lang-btn:hover{
-      background:rgba(255,255,255,.12);
-    }
-
-    .lang-btn.active{
-      background:#22d3ee;
-      color:#020617;
-      font-weight:700;
-    }
-
-    .hero{
-      text-align:center;
-      margin-bottom:40px;
-    }
-
-    .hero h1{
-      font-size:72px;
-      margin:0 0 16px;
-      font-weight:900;
-      letter-spacing:-2px;
-
-      background:linear-gradient(
-        90deg,
-        #22d3ee,
-        #3b82f6
-      );
-
-      -webkit-background-clip:text;
-      -webkit-text-fill-color:transparent;
-    }
-
-    .subtitle{
-      color:#cbd5e1;
-      font-size:20px;
-      margin-bottom:16px;
-    }
-
-    .privacy{
-      color:#67e8f9;
-      font-size:14px;
-    }
-
-    .glass{
-      background:rgba(255,255,255,.05);
-
-      border:1px solid rgba(255,255,255,.08);
-
-      backdrop-filter:blur(16px);
-
-      border-radius:32px;
-    }
-
-    .main-card{
-      padding:32px;
-    }
-
-    .drop-zone{
-      border:2px dashed #475569;
-      border-radius:32px;
-      padding:80px 30px;
-      text-align:center;
-      cursor:pointer;
-
-      transition:.25s;
-    }
-
-    .drop-zone.drag{
-      border-color:#22d3ee;
-
-      transform:scale(1.01);
-
-      box-shadow:
-        0 0 30px rgba(34,211,238,.25);
-    }
-
-    .drop-zone svg{
-      width:90px;
-      height:90px;
-      color:#22d3ee;
-      margin-bottom:20px;
-    }
-
-    .drop-title{
-      font-size:36px;
-      font-weight:700;
-      margin-bottom:14px;
-    }
-
-    .drop-desc{
-      max-width:700px;
-      margin:auto;
-      color:#94a3b8;
-      line-height:1.7;
-      margin-bottom:34px;
-    }
-
-    .primary-btn{
-      border:none;
-      padding:18px 34px;
-      border-radius:20px;
-
-      background:#22d3ee;
-
-      color:#020617;
-
-      font-size:18px;
-      font-weight:700;
-
-      cursor:pointer;
-
-      transition:.2s;
-    }
-
-    .primary-btn:hover{
-      background:#67e8f9;
-      transform:translateY(-2px);
-    }
-
-    .selected-file{
-      margin-bottom:30px;
-    }
-
-    .selected-label{
-      color:#22d3ee;
-      margin-bottom:10px;
-    }
-
-    .selected-name{
-      font-size:28px;
-      font-weight:700;
-      word-break:break-all;
-    }
-
-    .selected-size{
-      margin-top:10px;
-      color:#94a3b8;
-    }
-
-    .options{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-      gap:20px;
-      margin-top:32px;
-    }
-
-    .option-box{
-      padding:22px;
-    }
-
-    .option-label{
-      color:#22d3ee;
-      font-size:14px;
-      margin-bottom:14px;
-    }
-
-    .range-wrap{
-      display:flex;
-      align-items:center;
-      gap:14px;
-    }
-
-    input[type="range"]{
-      width:100%;
-      accent-color:#22d3ee;
-    }
-
-    .toggle{
-      display:flex;
-      align-items:center;
-      gap:14px;
-      font-size:20px;
-      font-weight:700;
-    }
-
-    .toggle input{
-      width:22px;
-      height:22px;
-    }
-
-    .process-area{
-      margin-top:30px;
-    }
-
-    .process-btn{
-      width:100%;
-      border:none;
-
-      background:linear-gradient(
-        90deg,
-        #06b6d4,
-        #2563eb
-      );
-
-      color:white;
-
-      padding:24px;
-      border-radius:24px;
-
-      font-size:22px;
-      font-weight:800;
-
-      cursor:pointer;
-
-      transition:.2s;
-    }
-
-    .process-btn:hover{
-      opacity:.9;
-      transform:translateY(-2px);
-    }
-
-    .process-btn:disabled{
-      opacity:.3;
-      cursor:not-allowed;
-      transform:none;
-    }
-
-    .status-box{
-      margin-top:34px;
-      display:none;
-    }
-
-    .status-head{
-      display:flex;
-      justify-content:space-between;
-      margin-bottom:12px;
-      color:#cbd5e1;
-      font-size:14px;
-    }
-
-    .progress-wrap{
-      width:100%;
-      height:16px;
-      background:#0f172a;
-      border-radius:999px;
-      overflow:hidden;
-    }
-
-    .progress-bar{
-      height:100%;
-      width:0%;
-
-      background:linear-gradient(
-        90deg,
-        #22d3ee,
-        #3b82f6
-      );
-
-      transition:.2s linear;
-    }
-
-    .result-box{
-      margin-top:34px;
-      display:none;
-    }
-
-    .result-inner{
-      padding:26px;
-
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:20px;
-      flex-wrap:wrap;
-    }
-
-    .result-title{
-      font-size:28px;
-      font-weight:800;
-      color:#67e8f9;
-    }
-
-    .result-desc{
-      margin-top:8px;
-      color:#94a3b8;
-    }
-
-    .download-btn{
-      border:none;
-      padding:18px 30px;
-      border-radius:20px;
-
-      background:#22d3ee;
-      color:#020617;
-
-      font-size:18px;
-      font-weight:800;
-
-      cursor:pointer;
-    }
-
-    .footer{
-      margin-top:40px;
-      text-align:center;
-      color:#64748b;
-      font-size:14px;
-    }
-
-    @media(max-width:768px){
-
-      .hero h1{
-        font-size:52px;
-      }
-
-      .drop-title{
-        font-size:28px;
-      }
-
-      .main-card{
-        padding:20px;
-      }
-
-      .drop-zone{
-        padding:50px 15px;
-      }
-    }
-
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>TrackSplitter</title>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- JSZip -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- lamejs -->
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  color:white;
+  overflow-x:hidden;
+
+  font-family:
+    Inter,
+    "Noto Sans JP",
+    sans-serif;
+
+  background:
+    radial-gradient(circle at top left,#1e293b 0%,transparent 30%),
+    radial-gradient(circle at bottom right,#0f172a 0%,transparent 30%),
+    #020617;
+}
+
+.bg-orb{
+  position:fixed;
+  border-radius:9999px;
+  filter:blur(120px);
+  opacity:.15;
+  pointer-events:none;
+}
+
+.orb1{
+  width:500px;
+  height:500px;
+  background:#06b6d4;
+  top:-200px;
+  left:-150px;
+}
+
+.orb2{
+  width:500px;
+  height:500px;
+  background:#3b82f6;
+  bottom:-200px;
+  right:-150px;
+}
+
+.container{
+  position:relative;
+  z-index:10;
+  max-width:1100px;
+  margin:auto;
+  padding:40px 20px 80px;
+}
+
+.topbar{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.lang-btn{
+  border:none;
+  color:white;
+  padding:10px 16px;
+  border-radius:14px;
+  cursor:pointer;
+
+  background:rgba(255,255,255,.06);
+
+  border:1px solid rgba(255,255,255,.08);
+
+  backdrop-filter:blur(10px);
+
+  transition:.2s;
+}
+
+.lang-btn.active{
+  background:#22d3ee;
+  color:#020617;
+  font-weight:700;
+}
+
+.hero{
+  text-align:center;
+  margin-bottom:40px;
+}
+
+.hero h1{
+  font-size:72px;
+  margin:0 0 16px;
+  font-weight:900;
+  letter-spacing:-2px;
+
+  background:linear-gradient(
+    90deg,
+    #22d3ee,
+    #3b82f6
+  );
+
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+.subtitle{
+  color:#cbd5e1;
+  font-size:20px;
+  margin-bottom:16px;
+}
+
+.privacy{
+  color:#67e8f9;
+  font-size:14px;
+}
+
+.glass{
+  background:rgba(255,255,255,.05);
+
+  border:1px solid rgba(255,255,255,.08);
+
+  backdrop-filter:blur(16px);
+
+  border-radius:32px;
+}
+
+.main-card{
+  padding:32px;
+}
+
+.drop-zone{
+  border:2px dashed #475569;
+  border-radius:32px;
+  padding:80px 30px;
+  text-align:center;
+  cursor:pointer;
+
+  transition:.25s;
+}
+
+.drop-zone.drag{
+  border-color:#22d3ee;
+
+  transform:scale(1.01);
+
+  box-shadow:
+    0 0 30px rgba(34,211,238,.25);
+}
+
+.drop-title{
+  font-size:36px;
+  font-weight:700;
+  margin-bottom:14px;
+}
+
+.drop-desc{
+  max-width:700px;
+  margin:auto;
+  color:#94a3b8;
+  line-height:1.7;
+  margin-bottom:34px;
+}
+
+.primary-btn{
+  border:none;
+  padding:18px 34px;
+  border-radius:20px;
+
+  background:#22d3ee;
+
+  color:#020617;
+
+  font-size:18px;
+  font-weight:700;
+
+  cursor:pointer;
+
+  transition:.2s;
+}
+
+.primary-btn:hover{
+  background:#67e8f9;
+}
+
+.options{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:20px;
+  margin-top:32px;
+}
+
+.option-box{
+  padding:22px;
+}
+
+.option-label{
+  color:#22d3ee;
+  font-size:14px;
+  margin-bottom:14px;
+}
+
+.range-wrap{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+input[type="range"]{
+  width:100%;
+  accent-color:#22d3ee;
+}
+
+.toggle{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  font-size:20px;
+  font-weight:700;
+}
+
+.process-area{
+  margin-top:30px;
+}
+
+.process-btn{
+  width:100%;
+  border:none;
+
+  background:linear-gradient(
+    90deg,
+    #06b6d4,
+    #2563eb
+  );
+
+  color:white;
+
+  padding:24px;
+  border-radius:24px;
+
+  font-size:22px;
+  font-weight:800;
+
+  cursor:pointer;
+}
+
+.process-btn:disabled{
+  opacity:.3;
+  cursor:not-allowed;
+}
+
+.status-box{
+  margin-top:34px;
+  display:none;
+}
+
+.status-head{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:12px;
+  color:#cbd5e1;
+}
+
+.progress-wrap{
+  width:100%;
+  height:16px;
+  background:#0f172a;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.progress-bar{
+  height:100%;
+  width:0%;
+
+  background:linear-gradient(
+    90deg,
+    #22d3ee,
+    #3b82f6
+  );
+
+  transition:.2s linear;
+}
+
+.result-box{
+  margin-top:34px;
+  display:none;
+}
+
+.result-inner{
+  padding:26px;
+
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:20px;
+  flex-wrap:wrap;
+}
+
+.result-title{
+  font-size:28px;
+  font-weight:800;
+  color:#67e8f9;
+}
+
+.result-desc{
+  margin-top:8px;
+  color:#94a3b8;
+}
+
+.download-btn{
+  border:none;
+  padding:18px 30px;
+  border-radius:20px;
+
+  background:#22d3ee;
+  color:#020617;
+
+  font-size:18px;
+  font-weight:800;
+
+  cursor:pointer;
+}
+
+.selected-file{
+  margin-top:20px;
+  color:#94a3b8;
+}
+
+@media(max-width:768px){
+
+  .hero h1{
+    font-size:52px;
+  }
+
+  .drop-title{
+    font-size:28px;
+  }
+}
+
+</style>
 </head>
 
 <body>
@@ -440,7 +370,6 @@
 
 <div class="container">
 
-  <!-- language -->
   <div class="topbar">
 
     <button id="jpBtn"
@@ -455,96 +384,60 @@
 
   </div>
 
-  <!-- hero -->
   <div class="hero">
 
-    <h1>Track Splitter</h1>
+    <h1>TrackSplitter</h1>
 
     <div id="subtitle"
       class="subtitle">
-      1つの音楽ファイルから複数の曲に自動分割します。音量自動調整機能でZIPで出力できます。
+      音楽ファイルを自動分割・MP3出力
     </div>
 
     <div id="privacy"
       class="privacy">
-      ファイルはサーバーに送信されません。すべて自己ブラウザ内で完結されます。
+      ファイルはサーバーに送信されません。すべてブラウザ内で処理されます。
     </div>
 
   </div>
 
-  <!-- card -->
   <div class="glass main-card">
 
-    <!-- drop -->
     <div id="dropZone"
       class="drop-zone">
 
       <input
         type="file"
         id="fileInput"
-        accept="audio/*"
+        accept=".mp3,.wav,.flac,.m4a,.ogg"
         hidden>
 
-      <div id="dropContent">
+      <div class="drop-title"
+        id="dropTitle">
+        音楽ファイルをドラッグ
+      </div>
 
-        <svg xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor">
+      <div class="drop-desc"
+        id="dropDesc">
+        MP3 / WAV / FLAC / M4A / OGG
+      </div>
 
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            d="M9 17v-6h13v6M9 17H5a2 2 0 01-2-2V7a2 2 0 012-2h4m0 12v2m0-2h13m0 0v2m0-2a2 2 0 002-2V9a2 2 0 00-2-2h-4m0 0V5m0 2H9m11 0h-4"/>
+      <button id="selectBtn"
+        class="primary-btn">
+        ファイルを選択
+      </button>
 
-        </svg>
-
-        <div id="dropTitle"
-          class="drop-title">
-          音楽ファイルをドラッグ
-        </div>
-
-        <div id="dropDesc"
-          class="drop-desc">
-          【対応ファイル】MP3 / WAV / FLAC / M4A / OGG　など
-        </div>
-
-        <div id="selectedFile"
-          class="selected-file"
-          style="display:none;">
-
-          <div id="selectedLabel"
-            class="selected-label">
-            選択中ファイル
-          </div>
-
-          <div id="selectedName"
-            class="selected-name"></div>
-
-          <div id="selectedSize"
-            class="selected-size"></div>
-
-        </div>
-
-        <button id="selectBtn"
-          class="primary-btn">
-          ファイルを選択
-        </button>
-
+      <div id="selectedFile"
+        class="selected-file">
       </div>
 
     </div>
 
-    <!-- options -->
     <div class="options">
 
-      <!-- fade -->
       <div class="glass option-box">
 
-        <div id="fadeLabel"
-          class="option-label">
-          分割後のフェードアウト秒数
+        <div class="option-label">
+          フェードアウト
         </div>
 
         <div class="range-wrap">
@@ -563,12 +456,10 @@
 
       </div>
 
-      <!-- silence -->
       <div class="glass option-box">
 
-        <div id="silenceLabel"
-          class="option-label">
-          分割後に追加する無音の秒数
+        <div class="option-label">
+          無音追加
         </div>
 
         <div class="range-wrap">
@@ -587,12 +478,10 @@
 
       </div>
 
-      <!-- normalize -->
       <div class="glass option-box">
 
-        <div id="normalizeLabel"
-          class="option-label">
-          音量自動調整機能
+        <div class="option-label">
+          音量自動調整
         </div>
 
         <label class="toggle">
@@ -611,7 +500,6 @@
 
     </div>
 
-    <!-- process -->
     <div class="process-area">
 
       <button id="processBtn"
@@ -624,7 +512,6 @@
 
     </div>
 
-    <!-- status -->
     <div id="statusBox"
       class="status-box">
 
@@ -649,7 +536,6 @@
 
     </div>
 
-    <!-- result -->
     <div id="resultBox"
       class="result-box">
 
@@ -657,14 +543,12 @@
 
         <div>
 
-          <div id="resultTitle"
-            class="result-title">
+          <div class="result-title">
             完了
           </div>
 
           <div id="resultDesc"
             class="result-desc">
-            0曲を書き出しました
           </div>
 
         </div>
@@ -682,143 +566,60 @@
 
   </div>
 
-  <div class="footer">
-    Built for soundtrack collectors, retro gamers, DJs and archive enthusiasts.
-  </div>
-
 </div>
 
 <script>
 
-  // =========================================
-  // language
-  // =========================================
-
-  let currentLang = "jp";
-
-  const texts = {
-
-    jp:{
-      subtitle:"1つの音楽ファイルから複数の曲に自動分割します。音量自動調整機能でZIPで出力できます。",
-      privacy:"ファイルはサーバーに送信されません。すべて自己ブラウザ内で完結されます。",
-      dropTitle:"音楽ファイルをドラッグ",
-      dropDesc:"【対応ファイル】MP3 / WAV / FLAC / M4A / OGG　など",
-      select:"ファイルを選択",
-      selected:"選択中ファイル",
-      fade:"分割後のフェードアウト秒数",
-      silence:"分割後に追加する無音の秒数",
-      normalize:"音量自動調整機能",
-      process:"処理開始",
-      complete:"処理完了",
-      exported:"曲を書き出しました",
-      download:"ZIPをダウンロード"
-    },
-
-    en:{
-      subtitle:"Auto Split • Normalize • ZIP Export",
-      privacy:"Your files never leave your browser.",
-      dropTitle:"Drop Your Audio File",
-      dropDesc:"Automatically detect silence, split tracks, normalize volume and export ZIP files.",
-      select:"Select File",
-      selected:"Selected File",
-      fade:"Fade Out",
-      silence:"Silence Gap",
-      normalize:"Auto Normalize",
-      process:"Start Processing",
-      complete:"Completed",
-      exported:"tracks exported",
-      download:"Download ZIP"
-    }
-
-  };
-
-  function applyLanguage(){
-
-    const t = texts[currentLang];
-
-    subtitle.textContent = t.subtitle;
-    privacy.textContent = t.privacy;
-
-    dropTitle.textContent = t.dropTitle;
-    dropDesc.textContent = t.dropDesc;
-
-    selectBtn.textContent = t.select;
-
-    selectedLabel.textContent = t.selected;
-
-    fadeLabel.textContent = t.fade;
-    silenceLabel.textContent = t.silence;
-    normalizeLabel.textContent = t.normalize;
-
-    processBtn.textContent = t.process;
-
-    resultTitle.textContent = t.complete;
-
-    downloadBtn.textContent = t.download;
-
-    jpBtn.classList.toggle(
-      "active",
-      currentLang === "jp"
-    );
-
-    enBtn.classList.toggle(
-      "active",
-      currentLang === "en"
-    );
-
-    updateRangeLabels();
-  }
-
-  jpBtn.onclick = ()=>{
-
-    currentLang = "jp";
-
-    applyLanguage();
-  };
-
-  enBtn.onclick = ()=>{
-
-    currentLang = "en";
-
-    applyLanguage();
-  };
-
-  // =========================================
-  // ranges
-  // =========================================
-
-  function updateRangeLabels(){
-
-    fadeValue.textContent =
-      (fadeRange.value / 1000).toFixed(1)
-      + (currentLang==="jp" ? "秒" : "s");
-
-    silenceValue.textContent =
-      (silenceRange.value / 1000).toFixed(1)
-      + (currentLang==="jp" ? "秒" : "s");
-  }
-
-  fadeRange.oninput = updateRangeLabels;
-  silenceRange.oninput = updateRangeLabels;
-
-  // =========================================
-  // normalize toggle
-  // =========================================
-
-  normalizeToggle.onchange = ()=>{
-
-    normalizeText.textContent =
-      normalizeToggle.checked
-      ? "ON"
-      : "OFF";
-  };
-
- // =========================================
-// file
-// =========================================
+let currentLang = "jp";
 
 let selectedFile = null;
+
 let zipBlob = null;
+
+const audioContext =
+  new (
+    window.AudioContext
+    || window.webkitAudioContext
+  )();
+
+const texts = {
+
+  jp:{
+    processing:"音声を解析中...",
+    splitting:"曲を分割中...",
+    zipping:"ZIP生成中...",
+    complete:"曲を書き出しました"
+  },
+
+  en:{
+    processing:"Analyzing audio...",
+    splitting:"Exporting tracks...",
+    zipping:"Generating ZIP...",
+    complete:"tracks exported"
+  }
+};
+
+fadeRange.oninput = ()=>{
+
+  fadeValue.textContent =
+    (fadeRange.value / 1000).toFixed(1)
+    + "秒";
+};
+
+silenceRange.oninput = ()=>{
+
+  silenceValue.textContent =
+    (silenceRange.value / 1000).toFixed(1)
+    + "秒";
+};
+
+normalizeToggle.onchange = ()=>{
+
+  normalizeText.textContent =
+    normalizeToggle.checked
+    ? "ON"
+    : "OFF";
+};
 
 selectBtn.onclick = ()=>{
 
@@ -829,7 +630,9 @@ fileInput.onchange = e=>{
 
   if(e.target.files[0]){
 
-    setFile(e.target.files[0]);
+    setFile(
+      e.target.files[0]
+    );
   }
 };
 
@@ -839,25 +642,14 @@ function setFile(file){
 
   processBtn.disabled = false;
 
-  // ← ここ修正
-  document.getElementById(
-    "selectedFile"
-  ).style.display = "block";
+  selectedFileDiv =
+    document.getElementById(
+      "selectedFile"
+    );
 
-  document.getElementById(
-    "selectedName"
-  ).textContent = file.name;
-
-  document.getElementById(
-    "selectedSize"
-  ).textContent =
-    (file.size/1024/1024).toFixed(2)
-    + " MB";
+  selectedFileDiv.textContent =
+    `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
 }
-
-// =========================================
-// drag
-// =========================================
 
 dropZone.addEventListener(
   "dragover",
@@ -894,9 +686,285 @@ dropZone.addEventListener(
   }
 );
 
-// =========================================
-// process
-// =========================================
+function detectSilence(
+
+  channelData,
+  sampleRate,
+
+  threshold = 0.01,
+  minSilence = 2
+
+){
+
+  const minSamples =
+    sampleRate * minSilence;
+
+  const silenceRanges = [];
+
+  let silenceStart = null;
+
+  for(
+    let i=0;
+    i<channelData.length;
+    i++
+  ){
+
+    if(
+      Math.abs(channelData[i])
+      < threshold
+    ){
+
+      if(silenceStart === null){
+
+        silenceStart = i;
+      }
+
+    }else{
+
+      if(silenceStart !== null){
+
+        const silenceLength =
+          i - silenceStart;
+
+        if(
+          silenceLength
+          >= minSamples
+        ){
+
+          silenceRanges.push({
+
+            start:
+              silenceStart / sampleRate,
+
+            end:
+              i / sampleRate
+          });
+        }
+
+        silenceStart = null;
+      }
+    }
+  }
+
+  return silenceRanges;
+}
+
+function audioBufferToWav(buffer){
+
+  const numChannels =
+    buffer.numberOfChannels;
+
+  const sampleRate =
+    buffer.sampleRate;
+
+  const format = 1;
+
+  const bitDepth = 16;
+
+  const samples =
+    buffer.length * numChannels;
+
+  const blockAlign =
+    numChannels * bitDepth / 8;
+
+  const byteRate =
+    sampleRate * blockAlign;
+
+  const dataSize =
+    samples * bitDepth / 8;
+
+  const bufferLength =
+    44 + dataSize;
+
+  const arrayBuffer =
+    new ArrayBuffer(bufferLength);
+
+  const view =
+    new DataView(arrayBuffer);
+
+  function writeString(
+    view,
+    offset,
+    string
+  ){
+
+    for(
+      let i=0;
+      i<string.length;
+      i++
+    ){
+
+      view.setUint8(
+        offset + i,
+        string.charCodeAt(i)
+      );
+    }
+  }
+
+  writeString(view,0,"RIFF");
+
+  view.setUint32(
+    4,
+    36 + dataSize,
+    true
+  );
+
+  writeString(view,8,"WAVE");
+
+  writeString(view,12,"fmt ");
+
+  view.setUint32(16,16,true);
+
+  view.setUint16(20,format,true);
+
+  view.setUint16(
+    22,
+    numChannels,
+    true
+  );
+
+  view.setUint32(
+    24,
+    sampleRate,
+    true
+  );
+
+  view.setUint32(
+    28,
+    byteRate,
+    true
+  );
+
+  view.setUint16(
+    32,
+    blockAlign,
+    true
+  );
+
+  view.setUint16(
+    34,
+    bitDepth,
+    true
+  );
+
+  writeString(view,36,"data");
+
+  view.setUint32(
+    40,
+    dataSize,
+    true
+  );
+
+  let offset = 44;
+
+  for(
+    let i=0;
+    i<buffer.length;
+    i++
+  ){
+
+    for(
+      let ch=0;
+      ch<numChannels;
+      ch++
+    ){
+
+      let sample =
+        buffer
+        .getChannelData(ch)[i];
+
+      sample =
+        Math.max(-1,
+        Math.min(1,sample));
+
+      view.setInt16(
+
+        offset,
+
+        sample < 0
+        ? sample * 0x8000
+        : sample * 0x7FFF,
+
+        true
+      );
+
+      offset += 2;
+    }
+  }
+
+  return arrayBuffer;
+}
+
+function wavToMp3(
+
+  wavBuffer,
+  channels = 2,
+  sampleRate = 44100,
+  kbps = 192
+
+){
+
+  const wav =
+    lamejs.WavHeader.readHeader(
+      new DataView(wavBuffer)
+    );
+
+  const samples =
+    new Int16Array(
+      wavBuffer,
+      wav.dataOffset,
+      wav.dataLen / 2
+    );
+
+  const mp3encoder =
+    new lamejs.Mp3Encoder(
+      channels,
+      sampleRate,
+      kbps
+    );
+
+  const blockSize = 1152;
+
+  let mp3Data = [];
+
+  for(
+    let i=0;
+    i<samples.length;
+    i += blockSize
+  ){
+
+    const chunk =
+      samples.subarray(
+        i,
+        i + blockSize
+      );
+
+    const mp3buf =
+      mp3encoder.encodeBuffer(chunk);
+
+    if(mp3buf.length > 0){
+
+      mp3Data.push(
+        new Int8Array(mp3buf)
+      );
+    }
+  }
+
+  const end =
+    mp3encoder.flush();
+
+  if(end.length > 0){
+
+    mp3Data.push(
+      new Int8Array(end)
+    );
+  }
+
+  return new Blob(
+    mp3Data,
+    { type:"audio/mp3" }
+  );
+}
 
 processBtn.onclick = async ()=>{
 
@@ -906,325 +974,192 @@ processBtn.onclick = async ()=>{
 
   resultBox.style.display = "none";
 
-  try{
+  progressBar.style.width = "10%";
 
-    // -----------------------------
-    // progress init
-    // -----------------------------
+  statusPercent.textContent = "10%";
 
-    progressBar.style.width = "5%";
+  statusText.textContent =
+    texts[currentLang].processing;
 
-    statusPercent.textContent = "5%";
+  const arrayBuffer =
+    await selectedFile.arrayBuffer();
 
-    statusText.textContent =
-      currentLang==="jp"
-      ? "FFmpegを読み込み中..."
-      : "Loading FFmpeg...";
-
-    // -----------------------------
-    // ffmpeg
-    // -----------------------------
-
-    const {
-      FFmpeg,
-      fetchFile
-    } = window.FFmpegModule;
-
-    const ffmpeg = new FFmpeg();
-
-    await ffmpeg.load({
-      coreURL:
-        "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js"
-    });
-
-    // -----------------------------
-    // input
-    // -----------------------------
-
-    progressBar.style.width = "15%";
-
-    statusPercent.textContent = "15%";
-
-    statusText.textContent =
-      currentLang==="jp"
-      ? "音声を解析中..."
-      : "Analyzing audio...";
-
-    await ffmpeg.writeFile(
-      "writeFile",
-      "input.mp3",
-      await fetchFile(selectedFile)
+  const audioBuffer =
+    await audioContext.decodeAudioData(
+      arrayBuffer
     );
 
-    // -----------------------------
-    // logs
-    // -----------------------------
+  const channelData =
+    audioBuffer.getChannelData(0);
 
-    let ffmpegLogs = "";
-
-    ffmpeg.setLogger(({
-      type,
-      message
-    })=>{
-
-      ffmpegLogs += message + "\n";
-
-    });
-
-    // -----------------------------
-    // silence detect
-    // -----------------------------
-
-    progressBar.style.width = "30%";
-
-    statusPercent.textContent = "30%";
-
-    statusText.textContent =
-      currentLang==="jp"
-      ? "無音を検出中..."
-      : "Detecting silence...";
-
-    await ffmpeg.exec(
-
-      "-i","input.mp3",
-
-      "-af",
-      "silencedetect=noise=-35dB:d=2",
-
-      "-f","null","-"
+  const silenceRanges =
+    detectSilence(
+      channelData,
+      audioBuffer.sampleRate
     );
 
-    // -----------------------------
-    // parse silence
-    // -----------------------------
+  const tracks = [];
 
-    const silenceStarts = [];
-    const silenceEnds = [];
+  let lastEnd = 0;
 
-    const startRegex =
-      /silence_start: ([0-9.]+)/g;
+  for(const silence of silenceRanges){
 
-    const endRegex =
-      /silence_end: ([0-9.]+)/g;
+    tracks.push({
 
-    let match;
+      start:lastEnd,
 
-    while(
-      (match = startRegex.exec(ffmpegLogs))
-      !== null
-    ){
+      end:silence.start
+    });
 
-      silenceStarts.push(
-        parseFloat(match[1])
-      );
-    }
-
-    while(
-      (match = endRegex.exec(ffmpegLogs))
-      !== null
-    ){
-
-      silenceEnds.push(
-        parseFloat(match[1])
-      );
-    }
-
-    // -----------------------------
-    // build tracks
-    // -----------------------------
-
-    const tracks = [];
-
-    let lastEnd = 0;
-
-    for(let i=0;i<silenceStarts.length;i++){
-
-      const start = lastEnd;
-
-      const end = silenceStarts[i];
-
-      if(end - start > 5){
-
-        tracks.push({
-          start,
-          end
-        });
-      }
-
-      lastEnd =
-        silenceEnds[i] || end;
-    }
-
-    // -----------------------------
-    // last track
-    // -----------------------------
-
-    const durationMatch =
-      ffmpegLogs.match(
-        /Duration: (\d+):(\d+):([\d.]+)/
-      );
-
-    if(durationMatch){
-
-      const totalSeconds =
-
-        parseInt(durationMatch[1]) * 3600
-        +
-
-        parseInt(durationMatch[2]) * 60
-        +
-
-        parseFloat(durationMatch[3]);
-
-      if(totalSeconds - lastEnd > 5){
-
-        tracks.push({
-
-          start:lastEnd,
-
-          end:totalSeconds
-
-        });
-      }
-    }
-
-    console.log("tracks",tracks);
-
-    // -----------------------------
-    // export tracks
-    // -----------------------------
-
-    const exportedFiles = [];
-
-    for(let i=0;i<tracks.length;i++){
-
-      const track = tracks[i];
-
-      const num =
-        String(i+1).padStart(2,"0");
-
-      const filename =
-        `${num}.mp3`;
-
-      const percent =
-        35 + Math.floor(
-          (i / tracks.length) * 50
-        );
-
-      progressBar.style.width =
-        percent + "%";
-
-      statusPercent.textContent =
-        percent + "%";
-
-      statusText.textContent =
-        currentLang==="jp"
-        ? `${filename} を出力中...`
-        : `Exporting ${filename}...`;
-
-      const duration =
-        track.end - track.start;
-
-      await ffmpeg.run(
-
-        "-i","input.mp3",
-
-        "-ss",
-        String(track.start),
-
-        "-t",
-        String(duration),
-
-        "-q:a","2",
-
-        "-af",
-
-        normalizeToggle.checked
-
-        ? `loudnorm,afade=t=out:st=${Math.max(duration - (fadeRange.value / 1000),0)}:d=${fadeRange.value / 1000},apad=pad_dur=${silenceRange.value / 1000}`
-
-        : `afade=t=out:st=${Math.max(duration - (fadeRange.value / 1000),0)}:d=${fadeRange.value / 1000},apad=pad_dur=${silenceRange.value / 1000}`,
-
-        filename
-      );
-
-      const data =
-  await ffmpeg.readFile(
-          filename
-        );
-
-      exportedFiles.push({
-        name:filename,
-        data
-      });
-
-      console.log(
-        "exported",
-        filename
-      );
-    }
-
-    // -----------------------------
-    // zip
-    // -----------------------------
-
-    progressBar.style.width = "90%";
-
-    statusPercent.textContent = "90%";
-
-    statusText.textContent =
-      currentLang==="jp"
-      ? "ZIP生成中..."
-      : "Generating ZIP...";
-
-    const zip = new JSZip();
-
-    for(const file of exportedFiles){
-
-      zip.file(
-        file.name,
-        file.data
-      );
-    }
-
-    zipBlob =
-      await zip.generateAsync({
-        type:"blob"
-      });
-
-    // -----------------------------
-    // finish
-    // -----------------------------
-
-    progressBar.style.width = "100%";
-
-    statusPercent.textContent = "100%";
-
-    statusText.textContent =
-      currentLang==="jp"
-      ? "完了"
-      : "Completed";
-
-    resultBox.style.display = "block";
-
-    resultDesc.textContent =
-      currentLang==="jp"
-      ? `${tracks.length}曲を書き出しました`
-      : `${tracks.length} tracks exported`;
-
-  }catch(err){
-
-    console.error(err);
-
-    alert(err);
-
+    lastEnd = silence.end;
   }
 
-};
+  tracks.push({
 
-// =========================================
-// download
-// =========================================
+    start:lastEnd,
+
+    end:
+      audioBuffer.duration
+  });
+
+  const zip = new JSZip();
+
+  for(
+    let i=0;
+    i<tracks.length;
+    i++
+  ){
+
+    const track =
+      tracks[i];
+
+    progressBar.style.width =
+      `${20 + (i / tracks.length) * 60}%`;
+
+    statusPercent.textContent =
+      `${Math.floor(20 + (i / tracks.length) * 60)}%`;
+
+    statusText.textContent =
+      texts[currentLang].splitting;
+
+    const startSample =
+      Math.floor(
+        track.start
+        * audioBuffer.sampleRate
+      );
+
+    const endSample =
+      Math.floor(
+        track.end
+        * audioBuffer.sampleRate
+      );
+
+    const length =
+      endSample - startSample;
+
+    const newBuffer =
+      audioContext.createBuffer(
+
+        audioBuffer.numberOfChannels,
+
+        length,
+
+        audioBuffer.sampleRate
+      );
+
+    for(
+      let ch=0;
+      ch<audioBuffer.numberOfChannels;
+      ch++
+    ){
+
+      const oldData =
+        audioBuffer.getChannelData(ch);
+
+      const newData =
+        newBuffer.getChannelData(ch);
+
+      for(
+        let j=0;
+        j<length;
+        j++
+      ){
+
+        let sample =
+          oldData[startSample + j];
+
+        // normalize
+
+        if(
+          normalizeToggle.checked
+        ){
+
+          sample *= 1.2;
+        }
+
+        // fade out
+
+        const fadeSamples =
+          (fadeRange.value / 1000)
+          * audioBuffer.sampleRate;
+
+        if(
+          j > length - fadeSamples
+        ){
+
+          const fadePos =
+            (length - j)
+            / fadeSamples;
+
+          sample *= fadePos;
+        }
+
+        newData[j] = sample;
+      }
+    }
+
+    const wav =
+      audioBufferToWav(newBuffer);
+
+    const mp3 =
+      wavToMp3(
+        wav,
+        audioBuffer.numberOfChannels,
+        audioBuffer.sampleRate
+      );
+
+    const filename =
+      String(i + 1)
+      .padStart(2,"0")
+      + ".mp3";
+
+    zip.file(
+      filename,
+      mp3
+    );
+  }
+
+  progressBar.style.width = "90%";
+
+  statusPercent.textContent = "90%";
+
+  statusText.textContent =
+    texts[currentLang].zipping;
+
+  zipBlob =
+    await zip.generateAsync({
+      type:"blob"
+    });
+
+  progressBar.style.width = "100%";
+
+  statusPercent.textContent = "100%";
+
+  resultBox.style.display = "block";
+
+  resultDesc.textContent =
+    `${tracks.length} ${texts[currentLang].complete}`;
+};
 
 downloadBtn.onclick = ()=>{
 
@@ -1240,9 +1175,6 @@ downloadBtn.onclick = ()=>{
 
   a.click();
 };
-  // init
-
-  applyLanguage();
 
 </script>
 
