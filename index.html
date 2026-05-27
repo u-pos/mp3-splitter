@@ -926,15 +926,16 @@ processBtn.onclick = async ()=>{
     // -----------------------------
 
     const {
-      createFFmpeg,
+      FFmpeg,
       fetchFile
-    } = FFmpeg;
+    } = window.FFmpegModule;
 
-    const ffmpeg = createFFmpeg({
-      log:true
+    const ffmpeg = new FFmpeg();
+
+    await ffmpeg.load({
+      coreURL:
+        "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js"
     });
-
-    await ffmpeg.load();
 
     // -----------------------------
     // input
@@ -949,7 +950,7 @@ processBtn.onclick = async ()=>{
       ? "音声を解析中..."
       : "Analyzing audio...";
 
-    ffmpeg.FS(
+    await ffmpeg.writeFile(
       "writeFile",
       "input.mp3",
       await fetchFile(selectedFile)
@@ -983,7 +984,7 @@ processBtn.onclick = async ()=>{
       ? "無音を検出中..."
       : "Detecting silence...";
 
-    await ffmpeg.run(
+    await ffmpeg.exec(
 
       "-i","input.mp3",
 
@@ -1148,8 +1149,7 @@ processBtn.onclick = async ()=>{
       );
 
       const data =
-        ffmpeg.FS(
-          "readFile",
+  await ffmpeg.readFile(
           filename
         );
 
