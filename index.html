@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  <title>TrackSplitter</title>
+  <title>Track Splitter</title>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -412,7 +412,7 @@
       }
 
       .drop-zone{
-        padding:60px 20px;
+        padding:50px 15px;
       }
     }
 
@@ -444,16 +444,16 @@
   <!-- hero -->
   <div class="hero">
 
-    <h1>TrackSplitter</h1>
+    <h1>Track Splitter</h1>
 
     <div id="subtitle"
       class="subtitle">
-      音楽ファイルを自動分割・音量調整・ZIP出力
+      1つの音楽ファイルから複数の曲に自動分割します。音量自動調整機能でZIPで出力できます。
     </div>
 
     <div id="privacy"
       class="privacy">
-      ファイルはサーバーに送信されません。すべてブラウザ内で処理されます。
+      ファイルはサーバーに送信されません。すべて自己ブラウザ内で完結されます。
     </div>
 
   </div>
@@ -493,7 +493,7 @@
 
         <div id="dropDesc"
           class="drop-desc">
-          無音検出で自動分割し、フェードアウトや音量調整を適用してZIPで出力します。
+          【対応ファイル】MP3 / WAV / FLAC / M4A / OGG　など
         </div>
 
         <div id="selectedFile"
@@ -530,7 +530,7 @@
 
         <div id="fadeLabel"
           class="option-label">
-          フェードアウト
+          分割後のフェードアウト秒数
         </div>
 
         <div class="range-wrap">
@@ -554,7 +554,7 @@
 
         <div id="silenceLabel"
           class="option-label">
-          無音追加
+          分割後に追加する無音の秒数
         </div>
 
         <div class="range-wrap">
@@ -578,7 +578,7 @@
 
         <div id="normalizeLabel"
           class="option-label">
-          音量自動調整
+          音量自動調整機能
         </div>
 
         <label class="toggle">
